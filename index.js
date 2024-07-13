@@ -1,6 +1,8 @@
 const fs = require('node:fs');
 const path = require('node:path');
 const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
+const { initializeApp, applicationDefault } = require('firebase-admin/app');
+
 
 function readCommands(client) {
   const foldersPath = path.join(__dirname, 'commands');
@@ -65,6 +67,11 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   try {
 		const oldPresenceActivities = oldPresence.activities.filter((act) => act.type == 0);
 		const newPresenceActivities = newPresence.activities.filter((act) => act.type == 0);
+    
+    if(oldPresenceActivities.length === 0 && newPresenceActivities.length === 0) {
+      console.log(`No activities neither on old or new presence`);
+      return;
+    }
 
     if(oldPresenceActivities.length >= newPresenceActivities.length) {
       // Stopped playing
@@ -82,3 +89,6 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
 
 client.login(process.env.DISCORD_TOKEN);
 
+/** FIRESTORE */
+initializeApp({ credential: applicationDefault() });
+console.log(`Firebase initialized!`);

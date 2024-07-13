@@ -1,3 +1,11 @@
 node_modules
 
 package-lock.json
+
+discord-playtime-bot.json
+
+ui-debug.log
+
+firestore-debug.log
+
+firebase-debug.log

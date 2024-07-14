@@ -1,16 +1,12 @@
-- Host del bot de discord
-    a. un sitio donde subir el codigo
-    b. flows para subir el codigo
+# Host del bot de discord
 
-Firebase
-- Para probar - usar comando presence para guardar en DB el juego relacionado con el user.
-
-- Cuando un usuario deje empieza a jugar, inicializar su timer.
-- Cuando un usuario deje de jugar, añadir tiempo si ya existia, sino crearlo en DB.
-- Comando para ver horas en juegos para X usuario.
+- un sitio donde subir el codigo
+- flows para subir el codigo
 
 Proximas versiones
+
 - Añadir logger.
 - Comando para escuchar a X usuario. Si no estas registrado, no guarda las presences.
 - Comando para registrar actividades aun que no sean juegos.
 - Mostrar la info de forma bonita.
+- Canal donde enviar updates de que se ha empezado a jugar o se ha dejado de jugar + problemas

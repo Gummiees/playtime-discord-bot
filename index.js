@@ -4,6 +4,7 @@ const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { Timer } = require('./models/timer');
 const { storeActivity } = require('./database/storeActivity');
+const { pushTimer, removeTimer, findTimer } = require('./timers');
 const moment = require('moment');
 
 
@@ -55,8 +56,6 @@ const client = new Client({
 client.commands = new Collection();
 client.cooldowns = new Collection();
 
-const timers = [];
-
 readCommands(client);
 readEvents(client);
 
@@ -64,31 +63,23 @@ client.once(Events.ClientReady, readyClient => {
 	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-function findTimer(presnece, activity) {
-  return timers.find((timer) => timer.userId === presnece.userId && timer.id === activity.applicationId);
-}
-
 function addActivity(presence, activity) {
-  const timer = findTimer(presence, activity);
+  const timer = findTimer(presence.userId, activity.applicationId);
   if(timer) {
     throw new Error(`There already is a timer the activity ${activity} and the user ${presence.userId}`);
   }
 
   const timestamp = moment().format('X');
-  console.log(`timestamp: ${timestamp}`);
-  timers.push(new Timer(presence.userId, activity.applicationId, activity.name, timestamp));
-  console.log(`Total timers: ${timers.length}`);
+  pushTimer(new Timer(presence.userId, activity.applicationId, activity.name, timestamp));
 }
 
 async function stopActivity(presence, activity) {
-  const timer = findTimer(presence, activity);
+  const timer = findTimer(presence.userId, activity.applicationId);
   if(!timer) {
     throw new Error(`No timer found for the activity ${activity} and the user ${presence.userId}`);
   }
   await storeActivity(timer);
-  const index = timers.indexOf(timer);
-  timers.splice(index, 1);
-  console.log(`Total timers: ${timers.length}`);
+  removeTimer(timer);
 }
 
 
@@ -100,10 +91,27 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   try {
 		const oldPresenceActivities = oldPresence.activities.filter((act) => act.type == 0);
 		const newPresenceActivities = newPresence.activities.filter((act) => act.type == 0);
+
     
-    if(oldPresenceActivities.length === 0 && newPresenceActivities.length === 0) {
-      console.log(`No game activities neither on old or new presence`);
-      return;
+    
+    if(oldPresenceActivities.length === newPresenceActivities.length) {
+      if(oldPresenceActivities.length === 0) {
+        console.log(`No game activities neither on old or new presence`);
+        return;
+      }
+      
+      const stoppedActivity = oldPresenceActivities[0];
+      const newActivity = newPresenceActivities[0];
+      if (stoppedActivity.applicationId === newActivity.applicationId) {
+        console.log(`No game activities neither on old or new presence`);
+        return;
+      }
+
+      // Somehow, the user has stopped the game and started a new one at the exact same moment... just in case...
+
+      console.log(`Stopped playing ${stoppedActivity} AND started playing ${newActivity}`);
+      addActivity(newPresence, newActivity);
+      await stopActivity(oldPresence, stoppedActivity);
     }
 
     if(oldPresenceActivities.length >= newPresenceActivities.length) {

@@ -10,6 +10,7 @@ Firebase
 - Comando para ver horas en juegos para X usuario.
 
 Proximas versiones
+- Añadir logger.
 - Comando para escuchar a X usuario. Si no estas registrado, no guarda las presences.
 - Comando para registrar actividades aun que no sean juegos.
 - Mostrar la info de forma bonita.

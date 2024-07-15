@@ -1,5 +1,6 @@
 const fs = require('node:fs');
 const path = require('node:path');
+const { token } = require('./config.json');
 const { Client, Events, GatewayIntentBits, Collection } = require('discord.js');
 const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { Timer } = require('./models/timer');
@@ -89,6 +90,14 @@ async function stopActivity(presence, activity) {
 // https://discord.js.org/docs/packages/discord.js/14.15.3/Client:Class#presenceUpdate
 client.on("presenceUpdate", async (oldPresence, newPresence) => {
   try {
+    if(!oldPresence) {
+      console.log(`oldPresence is null`);
+      return;
+    }
+    if(!newPresence) {
+      console.log(`newPresence is null`);
+      return;
+    }
 		const oldPresenceActivities = oldPresence.activities.filter((act) => act.type == 0);
 		const newPresenceActivities = newPresence.activities.filter((act) => act.type == 0);
 
@@ -130,7 +139,7 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
   }
 });
 
-client.login(process.env.DISCORD_TOKEN);
+client.login(token);
 
 /** FIRESTORE */
 initializeApp({ credential: applicationDefault() });

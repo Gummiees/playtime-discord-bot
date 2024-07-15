@@ -1,5 +1,5 @@
 const { REST, Routes } = require('discord.js');
-const { clientId } = require('./config.json');
+const { clientId, token } = require('./config.json');
 const fs = require('node:fs');
 const path = require('node:path');
 
@@ -25,7 +25,7 @@ for (const folder of commandFolders) {
 }
 
 // Construct and prepare an instance of the REST module
-const rest = new REST().setToken(process.env.DISCORD_TOKEN);
+const rest = new REST().setToken(token);
 
 // and deploy your commands!
 (async () => {

@@ -14,13 +14,10 @@ const storeActivity = async (timer) => {
     
     let time = calculateTime(timer);
     if (gameDoc.exists) {
-        console.log(`saved time: ${gameDoc.data().time}`);
         time += gameDoc.data().time;
     }
     
-    console.log(`total time to be stored: ${time}`);
     await gameRef.set({ id: timer.id, name: timer.name, time: time });
-    console.log(`Stored on Firebase!`);
 };
 
 module.exports = { storeActivity };

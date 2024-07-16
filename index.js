@@ -6,8 +6,8 @@ const { initializeApp, applicationDefault } = require('firebase-admin/app');
 const { Timer } = require('./models/timer');
 const { storeActivity } = require('./database/storeActivity');
 const { pushTimer, removeTimer, findTimer } = require('./timers');
+const { logInfo, logError } = require('./logger');
 const moment = require('moment');
-
 
 function readCommands(client) {
   const foldersPath = path.join(__dirname, 'commands');
@@ -23,7 +23,7 @@ function readCommands(client) {
       if ('data' in command && 'execute' in command) {
         client.commands.set(command.data.name, command);
       } else {
-        console.log(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
+        logInfo(`[WARNING] The command at ${filePath} is missing a required "data" or "execute" property.`);
       }
     }
   }
@@ -61,7 +61,7 @@ readCommands(client);
 readEvents(client);
 
 client.once(Events.ClientReady, readyClient => {
-	console.log(`Ready! Logged in as ${readyClient.user.tag}`);
+	logInfo(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
 function addActivity(presence, activity) {
@@ -91,11 +91,11 @@ async function stopActivity(presence, activity) {
 client.on("presenceUpdate", async (oldPresence, newPresence) => {
   try {
     if(!oldPresence) {
-      console.log(`oldPresence is null`);
+      logInfo(`oldPresence is null`);
       return;
     }
     if(!newPresence) {
-      console.log(`newPresence is null`);
+      logInfo(`newPresence is null`);
       return;
     }
 		const oldPresenceActivities = oldPresence.activities.filter((act) => act.type == 0);
@@ -105,37 +105,37 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
     
     if(oldPresenceActivities.length === newPresenceActivities.length) {
       if(oldPresenceActivities.length === 0) {
-        console.log(`No game activities neither on old or new presence`);
+        logInfo(`No game activities neither on old or new presence`);
         return;
       }
       
       const stoppedActivity = oldPresenceActivities[0];
       const newActivity = newPresenceActivities[0];
       if (stoppedActivity.applicationId === newActivity.applicationId) {
-        console.log(`No game activities neither on old or new presence`);
+        logInfo(`No game activities neither on old or new presence`);
         return;
       }
 
       // Somehow, the user has stopped the game and started a new one at the exact same moment... just in case...
 
-      console.log(`Stopped playing ${stoppedActivity} AND started playing ${newActivity}`);
+      logInfo(`Stopped playing ${stoppedActivity} AND started playing ${newActivity}`);
       addActivity(newPresence, newActivity);
       await stopActivity(oldPresence, stoppedActivity);
     }
 
     if(oldPresenceActivities.length >= newPresenceActivities.length) {
       const stoppedActivity = oldPresenceActivities[0];
-      console.log(`Stopped playing ${stoppedActivity}`);
+      logInfo(`Stopped playing ${stoppedActivity}`);
       await stopActivity(oldPresence, stoppedActivity);
     }
     if (oldPresenceActivities.length <= newPresenceActivities.length) {
       const newActivity = newPresenceActivities[0];
-      console.log(`Started playing ${newActivity}`);
+      logInfo(`Started playing ${newActivity}`);
       addActivity(newPresence, newActivity);
     }
   }
   catch (err) {
-    console.error(err);
+    logError(err);
   }
 });
 
@@ -143,4 +143,4 @@ client.login(token);
 
 /** FIRESTORE */
 initializeApp({ credential: applicationDefault() });
-console.log(`Firebase initialized!`);
+logInfo(`Firebase initialized!`);

@@ -51,3 +51,12 @@ For me, the difficulty always come with the deployment to a VM because of the au
 I had to activate sooo many things to make this project work, but once I was able to launch the VM, it was easy peasy to deploy the container. No login was necessary as I was already using the Google infrastructure.
 
 Because of this, I also decided to start using the Google Cloud logging system.
+
+## Roadmap
+
+I don't really have plans to keep messing with this repository, but if I do, here are some ideas on what it'd be done:
+
+- Show the playtime prettier.
+- Command to listen to X user. If you're not registered, your presence changes are ignored and not stored.
+- Command to track activities even if they are not games.
+

@@ -9,3 +9,5 @@ firestore-debug.log
 firebase-debug.log
 
 config.json
+
+coverage/*

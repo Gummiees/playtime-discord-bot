@@ -25,7 +25,6 @@ module.exports = {
                 await interaction.editReply('Game time tracking has been disabled for your account. Your game time will no longer be tracked.');
             }
         } catch (error) {
-            console.error(error);
             await interaction.editReply('There was an error while updating your tracking preferences.');
         }
     },

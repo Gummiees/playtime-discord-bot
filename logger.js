@@ -9,8 +9,12 @@ async function logInfo(text) {
         severity: 'INFO',
     };
     console.log(text);
-    const entry = log.entry(metadata, text);
-    await log.write(entry);
+    try {
+        const entry = log.entry(metadata, text);
+        await log.write(entry);
+    } catch (error) {
+        console.error('Failed to write to Google Cloud Logging:', error);
+    }
 }
 
 async function logError(text) {
@@ -19,8 +23,12 @@ async function logError(text) {
         severity: 'ERROR',
     };
     console.error(text);
-    const entry = log.entry(metadata, text);
-    await log.write(entry);
+    try {
+        const entry = log.entry(metadata, text);
+        await log.write(entry);
+    } catch (error) {
+        console.error('Failed to write to Google Cloud Logging:', error);
+    }
 }
 
 module.exports = { logInfo, logError }

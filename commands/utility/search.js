@@ -50,8 +50,9 @@ module.exports = {
         } catch (e) {
             if (e instanceof NoUserError) {
                 await interaction.editReply(`You have no games registered.`);
+            } else {
+                await interaction.editReply('There was an error while searching for games.');
             }
-            throw e;
         }
     },
 }; 

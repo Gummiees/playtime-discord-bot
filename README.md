@@ -14,7 +14,15 @@ Depends. Some games which have their own launcher sadly do not work with that so
 
 ### timers
 
-When called, returns a text which contains all the games the user who called it has registered. One line per game, which tells the game name and the total time spent playing it. Might change the name to something else, but for now it is what it is.
+When called, returns a text which contains all the games the user who called it has registered. One line per game, which tells the game name and the total time spent playing it. Might change the name to something else, but for now it is what it is. It is paged as there might be too many games.
+
+### search
+
+You can input whatever on the query so it will try to find an activity registered on you.
+
+### tracking
+
+Toggles whether the bot should track your game time or not. When tracking is disabled, the bot will not record any game time for you. This is useful if you want to temporarily stop tracking your playtime without having to leave the server.
 
 ## Setup
 
@@ -56,7 +64,4 @@ Because of this, I also decided to start using the Google Cloud logging system.
 
 I don't really have plans to keep messing with this repository, but if I do, here are some ideas on what it'd be done:
 
-- Show the playtime prettier.
-- Command to listen to X user. If you're not registered, your presence changes are ignored and not stored.
 - Command to track activities even if they are not games.
-

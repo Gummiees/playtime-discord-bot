@@ -10,4 +10,6 @@ firebase-debug.log
 
 config.json
 
+service-account-key.json
+
 coverage/*

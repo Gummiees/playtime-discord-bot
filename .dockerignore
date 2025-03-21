@@ -32,3 +32,15 @@
 **/dist
 LICENSE
 README.md
+
+node_modules
+npm-debug.log
+.git
+.gitignore
+.env
+*.tar
+*.log
+.DS_Store
+.vscode
+coverage
+__tests__

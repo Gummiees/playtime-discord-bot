@@ -8,6 +8,7 @@ const { storeActivity } = require('./database/storeActivity');
 const { pushTimer, removeTimer, findTimer } = require('./timers');
 const { logInfo, logError } = require('./logger');
 const moment = require('moment');
+const { getTrackingPermissions } = require('./database/trackingPermissions');
 
 function readCommands(client) {
   const foldersPath = path.join(__dirname, 'commands');
@@ -64,10 +65,16 @@ client.once(Events.ClientReady, readyClient => {
 	logInfo(`Ready! Logged in as ${readyClient.user.tag}`);
 });
 
-function addActivity(presence, activity) {
+async function addActivity(presence, activity) {
   const timer = findTimer(presence.userId, activity.applicationId);
   if(timer) {
     throw new Error(`There already is a timer the activity ${activity} and the user ${presence.userId}`);
+  }
+
+  const isTrackingEnabled = await getTrackingPermissions(presence.userId);
+  if (!isTrackingEnabled) {
+    logInfo(`Tracking is disabled for user ${presence.userId}`);
+    return;
   }
 
   const timestamp = moment().format('X');

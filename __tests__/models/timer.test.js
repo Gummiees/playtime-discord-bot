@@ -1,17 +1,23 @@
 const { Timer } = require('../../models/timer');
 
-describe('Timer', () => {
-  it('should create a timer with the correct properties', () => {
-    const userId = '123';
-    const id = '456';
-    const name = 'Test Game';
-    const time = '1234567890';
+describe('Timer Model', () => {
+    it('should create a timer with default type', () => {
+        const timer = new Timer('user123', 'game456', 'Game Name', 1234567890);
+        
+        expect(timer.userId).toBe('user123');
+        expect(timer.id).toBe('game456');
+        expect(timer.name).toBe('Game Name');
+        expect(timer.time).toBe(1234567890);
+        expect(timer.type).toBe(0); // Default type (game)
+    });
 
-    const timer = new Timer(userId, id, name, time);
-
-    expect(timer.userId).toBe(userId);
-    expect(timer.id).toBe(id);
-    expect(timer.name).toBe(name);
-    expect(timer.time).toBe(time);
-  });
+    it('should create a timer with specified type', () => {
+        const timer = new Timer('user123', 'spotify456', 'Spotify', 1234567890, 2);
+        
+        expect(timer.userId).toBe('user123');
+        expect(timer.id).toBe('spotify456');
+        expect(timer.name).toBe('Spotify');
+        expect(timer.time).toBe(1234567890);
+        expect(timer.type).toBe(2); // Listening type
+    });
 }); 

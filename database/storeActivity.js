@@ -17,7 +17,12 @@ const storeActivity = async (timer) => {
         time += gameDoc.data().time;
     }
     
-    await gameRef.set({ id: timer.id, name: timer.name, time: time });
+    await gameRef.set({ 
+        id: timer.id, 
+        name: timer.name, 
+        time: time,
+        type: timer.type || 0 // Default to 0 (game) for backward compatibility
+    });
 };
 
 module.exports = { storeActivity };

@@ -24,6 +24,10 @@ You can input whatever on the query so it will try to find an activity registere
 
 Toggles whether the bot should track your game time or not. When tracking is disabled, the bot will not record any game time for you. This is useful if you want to temporarily stop tracking your playtime without having to leave the server.
 
+### track-activity
+
+Use this command while you have a non-game activity active (like Spotify or a custom status) to start tracking its time. Once tracked, the activity's time will be recorded just like games. Note that games are tracked automatically, so you don't need to use this command for games.
+
 ## Setup
 
 You will need to add a `config.json` file on the root of the project. Check out the Discord.js documentation for it: https://discordjs.guide/creating-your-bot/#using-config-json. You will need to setup your token and client ID.

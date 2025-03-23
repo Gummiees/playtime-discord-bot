@@ -66,7 +66,7 @@ client.once(Events.ClientReady, readyClient => {
 });
 
 async function addActivity(presence, activity) {
-  const timer = findTimer(presence.userId, activity.applicationId);
+  const timer = findTimer(presence.userId, activity.applicationId || activity.name);
   if(timer) {
     throw new Error(`There already is a timer the activity ${activity} and the user ${presence.userId}`);
   }
@@ -78,18 +78,17 @@ async function addActivity(presence, activity) {
   }
 
   const timestamp = moment().format('X');
-  pushTimer(new Timer(presence.userId, activity.applicationId, activity.name, timestamp));
+  pushTimer(new Timer(presence.userId, activity.applicationId || activity.name, activity.name, timestamp, activity.type));
 }
 
 async function stopActivity(presence, activity) {
-  const timer = findTimer(presence.userId, activity.applicationId);
+  const timer = findTimer(presence.userId, activity.applicationId || activity.name);
   if(!timer) {
     throw new Error(`No timer found for the activity ${activity} and the user ${presence.userId}`);
   }
   await storeActivity(timer);
   removeTimer(timer);
 }
-
 
 // Important! If you have one game opened, and you start another one, discord will send on the old presence the game you were initially
 // playing, but omit it on the new presence. The new presence will only inform about the new game started, even if the first game is still
@@ -105,39 +104,47 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
       logInfo(`newPresence is null`);
       return;
     }
-		const oldPresenceActivities = oldPresence.activities.filter((act) => act.type == 0);
-		const newPresenceActivities = newPresence.activities.filter((act) => act.type == 0);
 
-    
+    // Get all tracked activities (games are type 0)
+    const oldPresenceActivities = oldPresence.activities.filter((act) => {
+      // Check if it's a game (type 0) or if it's being tracked
+      const timer = findTimer(oldPresence.userId, act.applicationId || act.name);
+      return act.type === 0 || timer !== null;
+    });
+    const newPresenceActivities = newPresence.activities.filter((act) => {
+      // Check if it's a game (type 0) or if it's being tracked
+      const timer = findTimer(newPresence.userId, act.applicationId || act.name);
+      return act.type === 0 || timer !== null;
+    });
     
     if(oldPresenceActivities.length === newPresenceActivities.length) {
       if(oldPresenceActivities.length === 0) {
-        logInfo(`No game activities neither on old or new presence`);
+        logInfo(`No tracked activities in either presence`);
         return;
       }
       
       const stoppedActivity = oldPresenceActivities[0];
       const newActivity = newPresenceActivities[0];
-      if (stoppedActivity.applicationId === newActivity.applicationId) {
-        logInfo(`No game activities neither on old or new presence`);
+      if (stoppedActivity.applicationId === newActivity.applicationId || 
+          (!stoppedActivity.applicationId && stoppedActivity.name === newActivity.name)) {
+        logInfo(`No change in tracked activities`);
         return;
       }
 
-      // Somehow, the user has stopped the game and started a new one at the exact same moment... just in case...
-
-      logInfo(`Stopped playing ${stoppedActivity} AND started playing ${newActivity}`);
+      // The user has stopped one activity and started another at the same time
+      logInfo(`Stopped ${stoppedActivity.name} AND started ${newActivity.name}`);
       addActivity(newPresence, newActivity);
       await stopActivity(oldPresence, stoppedActivity);
     }
 
     if(oldPresenceActivities.length >= newPresenceActivities.length) {
       const stoppedActivity = oldPresenceActivities[0];
-      logInfo(`Stopped playing ${stoppedActivity}`);
+      logInfo(`Stopped ${stoppedActivity.name}`);
       await stopActivity(oldPresence, stoppedActivity);
     }
     if (oldPresenceActivities.length <= newPresenceActivities.length) {
       const newActivity = newPresenceActivities[0];
-      logInfo(`Started playing ${newActivity}`);
+      logInfo(`Started ${newActivity.name}`);
       addActivity(newPresence, newActivity);
     }
   }

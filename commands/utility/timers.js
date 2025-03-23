@@ -41,7 +41,7 @@ module.exports = {
 			gamesWithTime.sort((a, b) => b.time - a.time);
 
 			const totalPages = Math.ceil(gamesWithTime.length / GAMES_PER_PAGE);
-			const currentPage = 0;
+			let currentPage = 0;  // Changed to let since we'll modify it
 
 			const content = this.getPageContent(gamesWithTime, currentPage, interaction.user.username);
 			const components = this.getPageComponents(currentPage, totalPages);
@@ -60,15 +60,28 @@ module.exports = {
 						return;
 					}
 
-					const newPage = i.customId === 'next' ? currentPage + 1 : currentPage - 1;
+					// Update the current page based on which button was clicked
+					currentPage = i.customId === 'next' ? currentPage + 1 : currentPage - 1;
+					
+					// Ensure currentPage stays within bounds
+					currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
+
 					await i.update({
-						content: this.getPageContent(gamesWithTime, newPage, interaction.user.username),
-						components: [this.getPageComponents(newPage, totalPages)]
+						content: this.getPageContent(gamesWithTime, currentPage, interaction.user.username),
+						components: [this.getPageComponents(currentPage, totalPages)]
 					});
 				});
 
-				collector.on('end', () => {
-					interaction.editReply({ components: [] });
+				collector.on('end', async () => {
+					// Only try to remove components if the message still exists and is editable
+					try {
+						await interaction.editReply({ 
+							content: this.getPageContent(gamesWithTime, currentPage, interaction.user.username),
+							components: [] 
+						});
+					} catch (error) {
+						// Ignore any errors that might occur if the message was deleted
+					}
 				});
 			}
 		} catch (e) {

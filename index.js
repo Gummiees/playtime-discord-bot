@@ -9,6 +9,7 @@ const { pushTimer, removeTimer, findTimer } = require('./timers');
 const { logInfo, logError } = require('./logger');
 const moment = require('moment');
 const { getTrackingPermissions } = require('./database/trackingPermissions');
+const { isActivityTracked } = require('./database/trackedActivities');
 
 function readCommands(client) {
   const foldersPath = path.join(__dirname, 'commands');
@@ -94,62 +95,85 @@ async function stopActivity(presence, activity) {
 // playing, but omit it on the new presence. The new presence will only inform about the new game started, even if the first game is still
 // running. Basically, it works as it is being shown on the discord interface.
 // https://discord.js.org/docs/packages/discord.js/14.15.3/Client:Class#presenceUpdate
-client.on("presenceUpdate", async (oldPresence, newPresence) => {
+client.on(Events.PresenceUpdate, async (oldPresence, newPresence) => {
   try {
-    if(!oldPresence) {
-      logInfo(`oldPresence is null`);
-      return;
-    }
-    if(!newPresence) {
-      logInfo(`newPresence is null`);
+    // Check if the user has tracking enabled
+    const isTrackingEnabled = await getTrackingPermissions(newPresence.userId);
+    if (!isTrackingEnabled) {
       return;
     }
 
-    // Get all tracked activities (real games have type 0 AND applicationId)
-    const oldPresenceActivities = oldPresence.activities.filter((act) => {
-      // Check if it's a real game (type 0 with applicationId) or if it's being tracked
-      const timer = findTimer(oldPresence.userId, act.applicationId || act.name);
-      return (act.type === 0 && act.applicationId) || timer !== null;
-    });
-    const newPresenceActivities = newPresence.activities.filter((act) => {
-      // Check if it's a real game (type 0 with applicationId) or if it's being tracked
-      const timer = findTimer(newPresence.userId, act.applicationId || act.name);
-      return (act.type === 0 && act.applicationId) || timer !== null;
-    });
+    // Get the activities that were stopped (present in old but not in new)
+    const oldActivities = oldPresence?.activities || [];
+    const newActivities = newPresence?.activities || [];
     
-    if(oldPresenceActivities.length === newPresenceActivities.length) {
-      if(oldPresenceActivities.length === 0) {
-        logInfo(`No tracked activities in either presence`);
-        return;
-      }
-      
-      const stoppedActivity = oldPresenceActivities[0];
-      const newActivity = newPresenceActivities[0];
-      if (stoppedActivity.applicationId === newActivity.applicationId || 
-          (!stoppedActivity.applicationId && stoppedActivity.name === newActivity.name)) {
-        logInfo(`No change in tracked activities`);
-        return;
-      }
+    const stoppedActivities = oldActivities.filter(oldActivity => {
+      return !newActivities.some(newActivity => {
+        // For games, compare by applicationId
+        if (oldActivity.type === 0 && oldActivity.applicationId) {
+          return newActivity.applicationId === oldActivity.applicationId;
+        }
+        // For non-games, compare by name
+        return newActivity.name === oldActivity.name;
+      });
+    });
 
-      // The user has stopped one activity and started another at the same time
-      logInfo(`Stopped ${stoppedActivity.name} AND started ${newActivity.name}`);
-      addActivity(newPresence, newActivity);
-      await stopActivity(oldPresence, stoppedActivity);
+    // Handle stopped activities
+    for (const activity of stoppedActivities) {
+      try {
+        // Skip "Custom Status" activities
+        if (activity.type === 4 && activity.name === 'Custom Status') {
+          continue;
+        }
+
+        // For games (type 0 with applicationId) or tracked custom activities
+        if ((activity.type === 0 && activity.applicationId) || 
+            await isActivityTracked(newPresence.userId, activity.name)) {
+          await stopActivity(newPresence, activity);
+        }
+      } catch (error) {
+        logError(`Error stopping activity ${activity.name} for user ${newPresence.userId}: ${error.message}`);
+      }
     }
 
-    if(oldPresenceActivities.length >= newPresenceActivities.length) {
-      const stoppedActivity = oldPresenceActivities[0];
-      logInfo(`Stopped ${stoppedActivity.name}`);
-      await stopActivity(oldPresence, stoppedActivity);
+    // Get the activities that were started (present in new but not in old)
+    const startedActivities = newActivities.filter(newActivity => {
+      return !oldActivities.some(oldActivity => {
+        // For games, compare by applicationId
+        if (newActivity.type === 0 && newActivity.applicationId) {
+          return oldActivity.applicationId === newActivity.applicationId;
+        }
+        // For non-games, compare by name
+        return oldActivity.name === newActivity.name;
+      });
+    });
+
+    // Handle started activities
+    for (const activity of startedActivities) {
+      try {
+        // Skip "Custom Status" activities
+        if (activity.type === 4 && activity.name === 'Custom Status') {
+          continue;
+        }
+
+        // For games (type 0 with applicationId) or tracked custom activities
+        if ((activity.type === 0 && activity.applicationId) || 
+            await isActivityTracked(newPresence.userId, activity.name)) {
+          const timer = new Timer(
+            newPresence.userId,
+            activity.applicationId || activity.name,
+            activity.name,
+            moment().format('X'),
+            activity.type
+          );
+          pushTimer(timer);
+        }
+      } catch (error) {
+        logError(`Error starting activity ${activity.name} for user ${newPresence.userId}: ${error.message}`);
+      }
     }
-    if (oldPresenceActivities.length <= newPresenceActivities.length) {
-      const newActivity = newPresenceActivities[0];
-      logInfo(`Started ${newActivity.name}`);
-      addActivity(newPresence, newActivity);
-    }
-  }
-  catch (err) {
-    logError(err);
+  } catch (error) {
+    logError(`Error in presence update handler: ${error.message}`);
   }
 });
 

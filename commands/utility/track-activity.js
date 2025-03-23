@@ -1,5 +1,6 @@
 const { SlashCommandBuilder } = require('discord.js');
 const { storeActivity } = require('../../database/storeActivity');
+const { storeTrackedActivity } = require('../../database/trackedActivities');
 const { logError } = require('../../logger');
 const { Timer } = require('../../models/timer');
 const moment = require('moment');
@@ -102,6 +103,16 @@ module.exports = {
                 isCustomActivity: !activityToTrack.applicationId && activityToTrack.type === 0
             }, null, 2));
             
+            try {
+                // Store the activity in the tracked activities collection
+                console.log(`[DEBUG] Storing activity in tracked activities...`);
+                await storeTrackedActivity(userId, activityToTrack.name, activityToTrack.type);
+                console.log(`[DEBUG] Activity stored in tracked activities successfully`);
+            } catch (storeError) {
+                console.error(`[DEBUG] Error storing tracked activity:`, storeError);
+                throw storeError;
+            }
+
             // Create a timer object for the activity
             const activityId = activityToTrack.applicationId || activityToTrack.name;
             const timer = new Timer(
@@ -115,16 +126,16 @@ module.exports = {
             console.log(`[DEBUG] Created timer:`, JSON.stringify(timer, null, 2));
             
             try {
-                // Store the activity
-                console.log(`[DEBUG] Attempting to store activity...`);
+                // Store the activity's current session
+                console.log(`[DEBUG] Storing activity session...`);
                 await storeActivity(timer);
-                console.log(`[DEBUG] Activity stored successfully`);
+                console.log(`[DEBUG] Activity session stored successfully`);
             } catch (storeError) {
-                console.error(`[DEBUG] Error storing activity:`, storeError);
+                console.error(`[DEBUG] Error storing activity session:`, storeError);
                 throw storeError;
             }
 
-            const successMessage = `Started tracking activity: **${activityToTrack.name}**. Your time spent on this activity will now be recorded.`;
+            const successMessage = `Started tracking activity: **${activityToTrack.name}**. This activity will now be tracked automatically whenever you use it.`;
             console.log(`[DEBUG] Sending success message: ${successMessage}`);
             return await interaction.editReply(successMessage);
         } catch (error) {
@@ -146,5 +157,5 @@ module.exports = {
                 throw responseError;
             }
         }
-    },
+    }
 }; 

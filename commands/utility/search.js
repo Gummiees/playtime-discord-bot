@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const { getActivities } = require('../../database/getActivities');
 const { NoUserError } = require('../../database/exceptions/noUserError');
 const { findTimer } = require('../../timers');
@@ -50,13 +50,13 @@ module.exports = {
             matchingGames.sort((a, b) => b.time - a.time);
 
             const totalPages = Math.ceil(matchingGames.length / GAMES_PER_PAGE);
-            let currentPage = 0;  // Changed to let since we'll modify it
+            let currentPage = 0;
 
-            const content = this.getPageContent(matchingGames, currentPage, searchQuery);
+            const embed = this.getPageEmbed(matchingGames, currentPage, searchQuery, interaction.user);
             const components = this.getPageComponents(currentPage, totalPages);
 
             const reply = await interaction.editReply({
-                content,
+                embeds: [embed],
                 components: components ? [components] : []
             });
 
@@ -89,7 +89,7 @@ module.exports = {
                     currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
 
                     await i.update({
-                        content: this.getPageContent(matchingGames, currentPage, searchQuery),
+                        embeds: [this.getPageEmbed(matchingGames, currentPage, searchQuery, interaction.user)],
                         components: [this.getPageComponents(currentPage, totalPages)]
                     });
                 });
@@ -98,7 +98,7 @@ module.exports = {
                     // Only try to remove components if the message still exists and is editable
                     try {
                         await interaction.editReply({ 
-                            content: this.getPageContent(matchingGames, currentPage, searchQuery),
+                            embeds: [this.getPageEmbed(matchingGames, currentPage, searchQuery, interaction.user)],
                             components: [] 
                         });
                     } catch (error) {
@@ -115,28 +115,42 @@ module.exports = {
         }
     },
 
-    getPageContent(games, page, searchQuery) {
+    getPageEmbed(games, page, searchQuery, user) {
         const start = page * GAMES_PER_PAGE;
         const end = start + GAMES_PER_PAGE;
         const pageGames = games.slice(start, end);
         
         const totalPlaytime = games.reduce((total, game) => total + game.time, 0);
         const totalGames = games.length;
-        
-        let content = `🔍 **Search Results for "${searchQuery}"**\n`;
-        content += `📊 Found **${totalGames}** games | Total Playtime: **${getRange(totalPlaytime)}**\n\n`;
-        
+
+        const embed = new EmbedBuilder()
+            .setColor(0x0099FF)
+            .setAuthor({
+                name: `${user.username}'s Search Results`,
+                iconURL: user.displayAvatarURL()
+            })
+            .setTitle(`🔍 Search Results for "${searchQuery}"`)
+            .setDescription(`Found **${totalGames}** games with total playtime: **${getRange(totalPlaytime)}**`)
+            .setTimestamp();
+
         if (totalGames > GAMES_PER_PAGE) {
-            content += `Showing games ${start + 1}-${Math.min(end, games.length)} of ${games.length}\n\n`;
+            embed.setFooter({
+                text: `Page ${page + 1}/${Math.ceil(totalGames / GAMES_PER_PAGE)} • Showing games ${start + 1}-${Math.min(end, games.length)} of ${games.length}`
+            });
         }
 
-        const gamesString = pageGames.map((game, index) => {
+        // Add games as fields
+        pageGames.forEach((game, index) => {
             const position = start + index + 1;
             const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '▫️';
-            return `${medal} **${game.name}**\n   ⏰ ${getRange(game.time)}`;
+            embed.addFields({
+                name: `${medal} ${game.name}`,
+                value: `⏰ ${getRange(game.time)}`,
+                inline: false
+            });
         });
-        
-        return content + gamesString.join('\n');
+
+        return embed;
     },
 
     getPageComponents(currentPage, totalPages) {

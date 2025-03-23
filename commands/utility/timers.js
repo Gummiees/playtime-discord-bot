@@ -61,7 +61,20 @@ module.exports = {
 					}
 
 					// Update the current page based on which button was clicked
-					currentPage = i.customId === 'next' ? currentPage + 1 : currentPage - 1;
+					switch (i.customId) {
+						case 'first':
+							currentPage = 0;
+							break;
+						case 'last':
+							currentPage = totalPages - 1;
+							break;
+						case 'next':
+							currentPage++;
+							break;
+						case 'prev':
+							currentPage--;
+							break;
+					}
 					
 					// Ensure currentPage stays within bounds
 					currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
@@ -123,6 +136,17 @@ module.exports = {
 
 		const row = new ActionRowBuilder();
 
+		// Add "First" button if not on first page
+		if (currentPage > 0) {
+			row.addComponents(
+				new ButtonBuilder()
+					.setCustomId('first')
+					.setLabel('⏮️ First')
+					.setStyle(ButtonStyle.Primary)
+			);
+		}
+
+		// Add "Previous" button if not on first page
 		if (currentPage > 0) {
 			row.addComponents(
 				new ButtonBuilder()
@@ -132,11 +156,22 @@ module.exports = {
 			);
 		}
 
+		// Add "Next" button if not on last page
 		if (currentPage < totalPages - 1) {
 			row.addComponents(
 				new ButtonBuilder()
 					.setCustomId('next')
 					.setLabel('Next ▶️')
+					.setStyle(ButtonStyle.Primary)
+			);
+		}
+
+		// Add "Last" button if not on last page
+		if (currentPage < totalPages - 1) {
+			row.addComponents(
+				new ButtonBuilder()
+					.setCustomId('last')
+					.setLabel('Last ⏭️')
 					.setStyle(ButtonStyle.Primary)
 			);
 		}

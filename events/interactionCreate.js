@@ -3,7 +3,6 @@ const { Events, Collection } = require('discord.js');
 module.exports = {
 	name: Events.InteractionCreate,
 	async execute(interaction) {
-
 		if (!interaction.isChatInputCommand()) return;
 
 		const command = interaction.client.commands.get(interaction.commandName);
@@ -29,7 +28,10 @@ module.exports = {
             
                 if (now < expirationTime) {
                     const expiredTimestamp = Math.round(expirationTime / 1_000);
-                    return interaction.reply({ content: `Please wait, you are on a cooldown for '${command.data.name}'.`, ephemeral: true });
+                    return interaction.reply({ 
+                        content: `Please wait, you are on a cooldown for '${command.data.name}'.`,
+                        ephemeral: true 
+                    });
                 }
             }
 
@@ -38,11 +40,21 @@ module.exports = {
             timestamps.set(interaction.user.id, now);
             setTimeout(() => timestamps.delete(interaction.user.id), cooldownAmount);
 		} catch (error) {
-			console.error(error);
-			if (interaction.replied || interaction.deferred) {
-				await interaction.followUp({ content: 'There was an error while executing this command!', ephemeral: true });
-			} else {
-				await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+			console.error('Command execution error:', error);
+			
+			try {
+				const errorMessage = { 
+					content: 'There was an error while executing this command!',
+					ephemeral: true 
+				};
+
+				if (!interaction.replied && !interaction.deferred) {
+					await interaction.reply(errorMessage);
+				} else {
+					await interaction.editReply(errorMessage);
+				}
+			} catch (followUpError) {
+				console.error('Error sending error message:', followUpError);
 			}
 		}
 	},

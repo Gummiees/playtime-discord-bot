@@ -105,16 +105,16 @@ client.on("presenceUpdate", async (oldPresence, newPresence) => {
       return;
     }
 
-    // Get all tracked activities (games are type 0)
+    // Get all tracked activities (real games have type 0 AND applicationId)
     const oldPresenceActivities = oldPresence.activities.filter((act) => {
-      // Check if it's a game (type 0) or if it's being tracked
+      // Check if it's a real game (type 0 with applicationId) or if it's being tracked
       const timer = findTimer(oldPresence.userId, act.applicationId || act.name);
-      return act.type === 0 || timer !== null;
+      return (act.type === 0 && act.applicationId) || timer !== null;
     });
     const newPresenceActivities = newPresence.activities.filter((act) => {
-      // Check if it's a game (type 0) or if it's being tracked
+      // Check if it's a real game (type 0 with applicationId) or if it's being tracked
       const timer = findTimer(newPresence.userId, act.applicationId || act.name);
-      return act.type === 0 || timer !== null;
+      return (act.type === 0 && act.applicationId) || timer !== null;
     });
     
     if(oldPresenceActivities.length === newPresenceActivities.length) {

@@ -1,4 +1,4 @@
-const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle } = require('discord.js');
+const { SlashCommandBuilder, ActionRowBuilder, ButtonBuilder, ButtonStyle, EmbedBuilder } = require('discord.js');
 const moment = require('moment');
 require('moment-precise-range-plugin');
 const { getActivities } = require('../../database/getActivities');
@@ -41,13 +41,13 @@ module.exports = {
 			gamesWithTime.sort((a, b) => b.time - a.time);
 
 			const totalPages = Math.ceil(gamesWithTime.length / GAMES_PER_PAGE);
-			let currentPage = 0;  // Changed to let since we'll modify it
+			let currentPage = 0;
 
-			const content = this.getPageContent(gamesWithTime, currentPage, interaction.user.username);
+			const embed = this.getPageEmbed(gamesWithTime, currentPage, interaction.user);
 			const components = this.getPageComponents(currentPage, totalPages);
 
 			const reply = await interaction.editReply({
-				content,
+				embeds: [embed],
 				components: components ? [components] : []
 			});
 
@@ -80,7 +80,7 @@ module.exports = {
 					currentPage = Math.max(0, Math.min(currentPage, totalPages - 1));
 
 					await i.update({
-						content: this.getPageContent(gamesWithTime, currentPage, interaction.user.username),
+						embeds: [this.getPageEmbed(gamesWithTime, currentPage, interaction.user)],
 						components: [this.getPageComponents(currentPage, totalPages)]
 					});
 				});
@@ -89,7 +89,7 @@ module.exports = {
 					// Only try to remove components if the message still exists and is editable
 					try {
 						await interaction.editReply({ 
-							content: this.getPageContent(gamesWithTime, currentPage, interaction.user.username),
+							embeds: [this.getPageEmbed(gamesWithTime, currentPage, interaction.user)],
 							components: [] 
 						});
 					} catch (error) {
@@ -107,28 +107,42 @@ module.exports = {
 		}
 	},
 
-	getPageContent(games, page, username) {
+	getPageEmbed(games, page, user) {
 		const start = page * GAMES_PER_PAGE;
 		const end = start + GAMES_PER_PAGE;
 		const pageGames = games.slice(start, end);
 		
 		const totalPlaytime = games.reduce((total, game) => total + game.time, 0);
 		const totalGames = games.length;
-		
-		let content = `🎮 **${username}'s Gaming Stats**\n`;
-		content += `📊 Total Games: **${totalGames}** | Total Playtime: **${getRange(totalPlaytime)}**\n\n`;
-		
+
+		const embed = new EmbedBuilder()
+			.setColor(0x0099FF)
+			.setAuthor({
+				name: `${user.username}'s Gaming Stats`,
+				iconURL: user.displayAvatarURL()
+			})
+			.setTitle('🎮 Game Time Overview')
+			.setDescription(`📊 Total Games: **${totalGames}** | Total Playtime: **${getRange(totalPlaytime)}**`)
+			.setTimestamp();
+
 		if (totalGames > GAMES_PER_PAGE) {
-			content += `Showing games ${start + 1}-${Math.min(end, games.length)} of ${games.length}\n\n`;
+			embed.setFooter({
+				text: `Page ${page + 1}/${Math.ceil(totalGames / GAMES_PER_PAGE)} • Showing games ${start + 1}-${Math.min(end, games.length)} of ${games.length}`
+			});
 		}
 
-		const gamesString = pageGames.map((game, index) => {
+		// Add games as fields
+		pageGames.forEach((game, index) => {
 			const position = start + index + 1;
 			const medal = position === 1 ? '🥇' : position === 2 ? '🥈' : position === 3 ? '🥉' : '▫️';
-			return `${medal} **${game.name}**\n   ⏰ ${getRange(game.time)}`;
+			embed.addFields({
+				name: `${medal} ${game.name}`,
+				value: `⏰ ${getRange(game.time)}`,
+				inline: false
+			});
 		});
-		
-		return content + gamesString.join('\n');
+
+		return embed;
 	},
 
 	getPageComponents(currentPage, totalPages) {
